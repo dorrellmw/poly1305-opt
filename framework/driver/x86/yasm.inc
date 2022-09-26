@@ -312,15 +312,6 @@
 	ret
 %endmacro
 
-%macro CPUCYCLES 0
-	rdtsc
-%if (BITS64)
-	shlq $32, %rdx
-	orq %rdx, %rax
-%endif
-	ret
-%endmacro
-
 %define CPUID_GENERIC  (0     )
 %define CPUID_X86      (1 << 0)
 %define CPUID_MMX      (1 << 1)

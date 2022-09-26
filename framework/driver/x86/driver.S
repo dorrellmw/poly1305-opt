@@ -203,12 +203,3 @@ Lcpuid_x86_done:
 
 	CPUID_EPILOGUE
 FN_END_LOCAL_PREFIX cpuid_x86
-
-
-
-GLOBAL_LOCAL_PREFIX cpucycles_x86
-FN_LOCAL_PREFIX cpucycles_x86
-
-CPUCYCLES
-
-FN_END_LOCAL_PREFIX cpucycles_x86

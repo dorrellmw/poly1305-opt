@@ -28,11 +28,6 @@ LIB_PUBLIC void poly1305_auth(unsigned char *mac, const unsigned char *in, size_
 
 LIB_PUBLIC int poly1305_startup(void);
 
-#if defined(UTILITIES)
-void poly1305_fuzz(void);
-void poly1305_bench(void);
-#endif
-
 #if defined(__cplusplus)
 }
 #endif

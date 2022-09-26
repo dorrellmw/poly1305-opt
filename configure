@@ -161,7 +161,6 @@ test_for_gnu_make() {
 # options
 outputheader="framework/include/asmopt.h"
 outputheaderstub="framework/include/asmopt_internal.h"
-outpututilimpls="framework/include/util_implementations.h"
 outputmake="asmopt.mak"
 outputlog="config.log"
 inputprojectname="project.def"
@@ -684,20 +683,6 @@ cat >> $outputheaderstub << EOF
 
 EOF
 
-# build util_implementations.h
-
-util_includes=`ls $appdir/include/*.h | sed "s/$appdir\/include\/\(.*\)\.h/#include \"\1.h\"/"`
-util_impls=`ls $appdir/include/*.h | sed "s/$appdir\/include\/\(.*\)\.h/make_impl(\1),/"`
-
-cat > $outpututilimpls << EOF
-$util_includes
-
-static const implementation_t implementations[] = {
-$util_impls
-};
-
-EOF
-
 
 cleanup
 
@@ -708,5 +693,5 @@ if [ "$HAVESHARED" = "yes" ]; then
     makeshared=",shared"
 fi
 
-echo "$outputheader generated for $PROJECTNAME, run '$GNUMAKE' or '$GNUMAKE [util,exe${makeshared}]' now"
+echo "$outputheader generated for $PROJECTNAME, run '$GNUMAKE' or '$GNUMAKE [exe${makeshared}]' now"
 

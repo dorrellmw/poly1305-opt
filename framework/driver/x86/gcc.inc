@@ -337,15 +337,6 @@
 	ret
 .endm
 
-.macro CPUCYCLES
-	rdtsc
-#if (IS_X86_64)
-	shlq $(32), %rdx
-	orq %rdx, %rax
-#endif
-	ret
-.endm
-
 
 /* Macros for CPUID only */
 
