@@ -121,10 +121,6 @@ NEON versions of the one-shot version `poly1305_auth` will revert to the ARMv6 v
 
 See [asm-opt#configuring](https://github.com/floodyberry/asm-opt#configuring) for full configure options.
 
-If you would like to use Yasm with a gcc-compatible compiler, pass `--yasm` to configure.
-
-The Visual Studio projects are generated assuming Yasm is available. You will need to have [Yasm.exe](http://yasm.tortall.net/Download.html) somewhere in your path to build them.
-
 ## STATIC LIBRARY ##
 
     ./configure

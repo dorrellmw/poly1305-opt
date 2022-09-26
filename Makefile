@@ -15,11 +15,8 @@ INCLUDE = $(addprefix -I$(BASEDIR)/,$(appdir)/extensions $(appdir)/include frame
 CINCLUDE = $(INCLUDE)
 ASMINCLUDE = $(INCLUDE)
 
-# yasm doesn't need includes passed to the assembler
-ifneq ($(AS),yasm)
 COMMA := ,
 ASMINCLUDE += $(addprefix -Wa$(COMMA),$(INCLUDE))
-endif
 
 ###########################
 # define recursive wildcard: $(call rwildcard, basepath, globs)
@@ -143,13 +140,7 @@ BASEOBJ = $(BUILDDIR)/$*
 # building .S (assembler) files
 $(BUILDDIR)/%.o: %.S
 	@mkdir -p $(dir $@)
-# yasm needs one pass to compile, and one to generate dependencies
-ifeq ($(AS),yasm)
-	$(AS) $(ASFLAGS) $(ASMINCLUDE) -o $@ $<
-	@$(AS) $(ASFLAGS) $(ASMINCLUDE) -o $@ -M $< >$(BASEOBJ).temp
-else
 	$(AS) $(ASFLAGS) $(ASMINCLUDE) $(DEPMM) $(DEPMF) $(BASEOBJ).temp -D BUILDING_ASM -c -o $(BASEOBJ).o $<
-endif
 	@cp $(BASEOBJ).temp $(BASEOBJ).P
 	@sed \
 	-e 's/^[^:]*: *//' \

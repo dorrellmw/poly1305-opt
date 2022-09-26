@@ -1,9 +1,5 @@
 #if defined(__GNUC__)
 #include "gcc_driver.inc"
-#else
-;.if 0
-%include "yasm_driver.inc"
-;.endif
 #endif
 
 INCLUDE_IF_AVX2_64BIT "poly1305/poly1305_avx2-64.inc"
