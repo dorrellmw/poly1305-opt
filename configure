@@ -542,8 +542,6 @@ if [ `uname` = "SunOS" ]; then
     fi
 fi
 
-CFLAGS="$CFLAGS -DBUILDING_ASMOPT_POLY1305"
-
 cat > $outputmake << EOF
 CC=$CC
 CFLAGS=$CFLAGS
