@@ -108,7 +108,7 @@ BASEOBJ = $*
 # building .S (assembler) files
 %.o: src/%.S
 	@mkdir -p $(dir $@)
-	$(AS) $(ASFLAGS) $(ASMINCLUDE) $(DEPMM) $(DEPMF) $(BASEOBJ).temp -D BUILDING_ASM -c -o $(BASEOBJ).o $<
+	$(AS) $(ASFLAGS) $(ASMINCLUDE) -MMD -MF $(BASEOBJ).temp -D BUILDING_ASM -c -o $(BASEOBJ).o $<
 	@cp $(BASEOBJ).temp $(BASEOBJ).P
 	@sed \
 	-e 's/^[^:]*: *//' \
@@ -121,7 +121,7 @@ BASEOBJ = $*
 # building .c (C) files
 %.o: src/%.c
 	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) $(CINCLUDE) $(DEPMM) $(DEPMF) $(BASEOBJ).temp -c -o $(BASEOBJ).o $<
+	$(CC) $(CFLAGS) $(CINCLUDE) -MMD -MF $(BASEOBJ).temp -c -o $(BASEOBJ).o $<
 	@cp $(BASEOBJ).temp $(BASEOBJ).P
 	@sed \
 	-e 's/#.*//' \
