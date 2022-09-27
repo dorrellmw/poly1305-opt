@@ -1,7 +1,7 @@
 #ifndef BASE_GCC_X86_S
 #define BASE_GCC_X86_S
 
-#include "asmopt_internal.h"
+#include "asmopt.h"
 
 #if !defined(HAVE_SLASHMACRO) && !defined(HAVE_DOLLARMACRO)
 	#error Unknown gnu as macro parameter convention! Run ./configure
@@ -181,40 +181,6 @@
 #elif defined(HAVE_DOLLARMACRO)
 	.globl $0
 	.globl _$0
-#endif
-.endm
-
-.macro FN_LOCAL_PREFIX name
-#if defined(HAVE_SLASHMACRO)
-	FN LOCAL_PREFIX(\name)
-#elif defined(HAVE_DOLLARMACRO)
-	FN LOCAL_PREFIX($0)
-#endif
-.endm
-
-.macro FN_EXT_LOCAL_PREFIX name, args, xmmused
-#if defined(HAVE_SLASHMACRO)
-	FN_EXT LOCAL_PREFIX(\name), \args, \xmmused
-#elif defined(HAVE_DOLLARMACRO)
-	FN_EXT LOCAL_PREFIX($0), $1, $2
-#endif
-.endm
-
-.macro FN_END_LOCAL_PREFIX name
-#if defined(HAVE_SLASHMACRO)
-	FN_END LOCAL_PREFIX(\name)
-#elif defined(HAVE_DOLLARMACRO)
-	FN_END LOCAL_PREFIX($0)
-#endif
-.endm
-
-.macro GLOBAL_LOCAL_PREFIX name
-#if defined(HAVE_SLASHMACRO)
-	GLOBAL LOCAL_PREFIX(\name)
-	HIDDEN LOCAL_PREFIX(\name)
-#elif defined(HAVE_DOLLARMACRO)
-	GLOBAL LOCAL_PREFIX($0)
-	HIDDEN LOCAL_PREFIX($0)
 #endif
 .endm
 

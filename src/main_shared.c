@@ -1,4 +1,4 @@
-#include "asmopt_internal.h"
+#include "asmopt.h"
 
 #if defined(_WIN32) || defined(__CYGWIN__)
 

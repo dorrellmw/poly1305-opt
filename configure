@@ -155,7 +155,6 @@ test_for_gnu_make() {
 
 # options
 outputheader="src/asmopt.h"
-outputheaderstub="src/asmopt_internal.h"
 outputmake="asmopt.mak"
 outputlog="config.log"
 asmheader=".text"
@@ -253,12 +252,6 @@ PROJECTVERMAJOR="1"
 # set things up
 rm -f $outputmake
 > $outputlog
-
-cat > $outputheaderstub << EOF
-#ifndef ASMOPT_INTERNAL_H
-#define ASMOPT_INTERNAL_H
-
-EOF
 
 cat > $outputheader << EOF
 #ifndef ASMOPT_POLY1305_H
@@ -603,19 +596,6 @@ DEFINE_INT128
 #endif /* ASMOPT_POLY1305_H */
 
 EOF
-
-
-cat >> $outputheaderstub << EOF
-#include "asmopt.h"
-
-#define LOCAL_PREFIX3(a,b) a##_##b
-#define LOCAL_PREFIX2(a,b) LOCAL_PREFIX3(a,b)
-#define LOCAL_PREFIX(n) LOCAL_PREFIX2(poly1305,n)
-
-#endif /* ASMOPT_INTERNAL_H */
-
-EOF
-
 
 cleanup
 
