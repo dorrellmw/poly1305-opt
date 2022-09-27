@@ -18,10 +18,8 @@ Installation options:
 
 Configuration options:
   --debug                             builds with no optimization and debugging symbols enbaled
-  --disable-as                        do not use external assembly
   --force-32bits                      (try to) build for 32bits regardless of underlying system
   --force-64bits                      (try to) build for 64bits regardless of underlying system
-  --generic                           alias for --disable-as, forces a generic build
   --pic                               pass -fPIC to the compiler, required to build shared library
   --strict                            use strict compiler flags for C
 
@@ -195,12 +193,6 @@ while [ "$1" != "" ]; do
         --debug ) debug="yes"
                   ;;
 
-        --disable-as ) HAVEAS="no"
-                       ;;
-
-        --generic ) HAVEAS="no"
-                       ;;
-
         --force-32bits ) bits32="yes"
                          ;;
 
@@ -248,7 +240,6 @@ LDFLAGS="${LDFLAGS:-}"
 AS="$CC"
 ASFLAGS=""
 ASFLAGSTEST="-x assembler -c"
-HAVEAS="${HAVEAS:-yes}"
 HAVESHARED="no"
 DEPMM="-MMD"
 DEPMF="-MF"
@@ -289,7 +280,7 @@ fi
 
 # assembler detection
 foundas="no"
-if [ "$HAVEAS" = "yes" ] && try_asm "xorb %al, %al"; then
+if try_asm "xorb %al, %al"; then
     ASFLAGSTEST="$ASFLAGSTEST -m32"
     echo "#define ARCH_X86" >> $outputheader
     ARCH="x86"
@@ -339,7 +330,7 @@ if [ "$HAVEAS" = "yes" ] && try_asm "xorb %al, %al"; then
 
     printf "#define CPU_%sBITS\n" "$OBITS" >> $outputheader
     foundas="yes"
-elif [ "$HAVEAS" = "yes" ] && try_asm "and r0, r0, r0"; then
+elif try_asm "and r0, r0, r0"; then
     echo "#define ARCH_ARM" >> $outputheader
     ARCH="arm"
     foundas="yes"
@@ -401,11 +392,8 @@ elif [ "$HAVEAS" = "yes" ] && try_asm "and r0, r0, r0"; then
     printf "#define CPU_%sBITS\n" "$OBITS" >> $outputheader
 fi
 
-if [ "$HAVEAS" = "yes" ]; then
-    if [ "$foundas" = "no" ]; then
-        echo "Unable to find a working assembler/assembler dialect, you're flying solo!"
-        HAVEAS="no"
-    fi
+if [ "$foundas" = "no" ]; then
+    fatal_error "Unable to find a working assembler/assembler dialect!"
 fi
 
 
@@ -571,7 +559,6 @@ LD=$LD
 RANLIB=$RANLIB
 STRIP=$STRIP
 INSTALL=$INSTALL
-HAVEAS=$HAVEAS
 HAVESHARED=$HAVESHARED
 AS=$AS
 ASFLAGS=$ASFLAGS
