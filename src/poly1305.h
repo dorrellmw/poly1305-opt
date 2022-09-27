@@ -3,34 +3,65 @@
 
 #include <stddef.h>
 
-#if !defined(LIB_PUBLIC)
-#define LIB_PUBLIC
-#endif
-
 #if defined(__cplusplus)
 extern "C" {
 #endif
 
-typedef struct poly1305_state {
-	unsigned char opaque[320];
-} poly1305_state;
-
-typedef struct poly1305_key {
+struct poly1305_key {
 	unsigned char b[32];
-} poly1305_key;
+};
 
-LIB_PUBLIC void poly1305_init(poly1305_state *S, const poly1305_key *key);
-LIB_PUBLIC void poly1305_init_ext(poly1305_state *S, const poly1305_key *key, size_t bytes_hint);
-LIB_PUBLIC void poly1305_update(poly1305_state *S, const unsigned char *in, size_t inlen);
-LIB_PUBLIC void poly1305_finish(poly1305_state *S, unsigned char *mac);
+#if defined(__x86_64__) || defined(__x86_64) || defined(__amd64__) || \
+defined(__i386__) || defined(__i386) || defined(i386)
 
-LIB_PUBLIC void poly1305_auth(unsigned char *mac, const unsigned char *in, size_t inlen, const poly1305_key *key);
+#if !defined(poly1305_auth) && defined(__AVX2__)
+void poly1305_auth_avx2(unsigned char *mac, const unsigned char *in,
+    size_t inlen, const struct poly1305_key *key);
+#define poly1305_auth poly1305_auth_avx2
+#endif
 
-LIB_PUBLIC int poly1305_startup(void);
+#if !defined(poly1305_auth) && defined(__AVX__)
+void poly1305_auth_avx(unsigned char *mac, const unsigned char *in,
+    size_t inlen, const struct poly1305_key *key);
+#define poly1305_auth poly1305_auth_avx
+#endif
+
+#if !defined(poly1305_auth) && defined(__SSE2__)
+void poly1305_auth_sse2(unsigned char *mac, const unsigned char *in,
+    size_t inlen, const struct poly1305_key *key);
+#define poly1305_auth poly1305_auth_sse2
+#endif
+
+void poly1305_auth_x86(unsigned char *mac, const unsigned char *in,
+    size_t inlen, const struct poly1305_key *key);
+
+#ifndef poly1305_auth
+#define poly1305_auth poly1305_auth_x86
+#endif
+
+#endif /* __x86_64__ || __i386__ etc... */
+
+#if __ARM_ARCH >= 6
+
+/* TODO: only implemented for 32-bit? */
+
+#if !defined(poly1305_auth) && __ARM_NEON == 1
+void poly1305_auth_neon(unsigned char *mac, const unsigned char *in,
+    size_t inlen, const struct poly1305_key *key);
+#define poly1305_auth poly1305_auth_neon
+#endif
+
+void poly1305_auth_armv6(unsigned char *mac, const unsigned char *in,
+    size_t inlen, const struct poly1305_key *key);
+
+#ifndef poly1305_auth
+#define poly1305_auth poly1305_auth_armv6
+#endif
+
+#endif /* __ARM_ARCH >= 6 */
 
 #if defined(__cplusplus)
 }
 #endif
 
 #endif /* POLY1305_H */
-
