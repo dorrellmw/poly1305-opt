@@ -95,6 +95,8 @@ clean:
 
 distclean: clean
 	@rm asmopt.mak
+	@rm src/asmopt.h
+	@rm src/asmopt_internal.h
 	@rm config.log
 
 ##########################
