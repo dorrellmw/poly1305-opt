@@ -17,7 +17,7 @@ Installation options:
   --includedir=DIR                    install includes in DIR [PREFIX/include]
 
 Configuration options:
-  --appdir=DIR                        read per-project files (extensions/, project.def/ver) from DIR [app]
+  --appdir=DIR                        read per-project files (extensions/) from DIR [app]
   --debug                             builds with no optimization and debugging symbols enbaled
   --disable-as                        do not use external assembly
   --example                           equivalent to --appdir=app-
@@ -162,8 +162,6 @@ outputheader="framework/include/asmopt.h"
 outputheaderstub="framework/include/asmopt_internal.h"
 outputmake="asmopt.mak"
 outputlog="config.log"
-inputprojectname="project.def"
-inputprojectver="project.ver"
 asmheader=".text"
 debug="no"
 bits32="no"
@@ -268,20 +266,9 @@ OFORMAT="generic"
 EXE=""
 STATICLIB=".lib"
 
-[ -e $appdir/$inputprojectname ] || fatal_error "Unable to find $appdir/$inputprojectname!"
-[ -e $appdir/$inputprojectver ] || fatal_error "Unable to find $appdir/$inputprojectver!"
-
-PROJECTNAME=`tr -d '[:cntrl:]' <$appdir/$inputprojectname 2>$outputlog | tr '[:upper:]' '[:lower:]'`
-PROJECTNAMEUPPER=`tr -d '[:cntrl:]' <$appdir/$inputprojectname 2>$outputlog | tr '[:lower:]' '[:upper:]'`
-PROJECTVERMAJOR=`cut -d . -f 1 $appdir/$inputprojectver` 2>$outputlog
-
-if [ x"$PROJECTNAME" = "x" ]; then
-    fatal_error "Unable to determine project name! Edit $appdir/$inputprojectname to set it"
-fi
-
-if [ x"$PROJECTVERMAJOR" = "x" ]; then
-    fatal_error "Unable to determine project name! Edit $appdir/$inputprojectver to set it"
-fi
+PROJECTNAME="poly1305"
+PROJECTNAMEUPPER="POLY1305"
+PROJECTVERMAJOR="1"
 
 # set things up
 mkdir -p build
