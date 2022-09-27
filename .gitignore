@@ -1,6 +1,4 @@
 asmopt.mak
-bin/*
-build/*
 config.log
 src/asmopt.h
 src/asmopt_internal.h
