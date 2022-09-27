@@ -46,7 +46,7 @@ default: lib
 install-generic:
 	$(INSTALL) -d $(includedir)/libpoly1305
 	$(INSTALL) -d $(libdir)
-	$(INSTALL) -m 644 src/*.h $(includedir)/libpoly1305
+	$(INSTALL) -m 644 src/poly1305.h $(includedir)/libpoly1305
 
 lib: poly1305$(STATICLIB)
 	@echo built [poly1305$(STATICLIB)]
