@@ -1,4 +1,6 @@
 asmopt.mak
 config.log
 src/asmopt.h
-src/asmopt_internal.h
+poly1305.P
+poly1305.o
+poly1305.lib
