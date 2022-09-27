@@ -2,11 +2,5 @@ asmopt.mak
 bin/*
 build/*
 config.log
-framework/include/asmopt.h
-framework/include/asmopt_internal.h
-example
-!example/
-vs201*/ipch/*
-vs201*/*.sdf
-vs201*/*.suo
-vs201*/*.user
+src/asmopt.h
+src/asmopt_internal.h

@@ -9,54 +9,24 @@ include asmopt.mak
 #
 
 BASEDIR = .
-BINDIR = bin
-BUILDDIR = build
-INCLUDE = $(addprefix -I$(BASEDIR)/,$(appdir)/extensions $(appdir)/include framework/include framework/driver framework/driver/$(ARCH))
+INCLUDE = $(addprefix -I$(BASEDIR)/,src)
 CINCLUDE = $(INCLUDE)
 ASMINCLUDE = $(INCLUDE)
 
 COMMA := ,
 ASMINCLUDE += $(addprefix -Wa$(COMMA),$(INCLUDE))
 
-###########################
-# define recursive wildcard: $(call rwildcard, basepath, globs)
-#
-rwildcard = $(foreach d, $(wildcard $(1)*), $(call rwildcard, $(d)/, $(2)) $(filter $(subst *, %, $(2)), $(d)))
-
-SRCDRIVER = $(wildcard framework/driver/*.c)
-SRCEXT = $(call rwildcard, $(appdir)/extensions/, *.c)
-SRCASM =
-SRCMAIN = $(appdir)/main.c
-SRCSHARED = framework/main_shared.c
-
-
-# do we have an assembler?
-ifeq ($(HAVEAS),yes)
-
-# grab all the assembler files
-SRCASM = $(call rwildcard, $(appdir)/extensions/, *.S)
-
-# add asm for the appropriate arch
-SRCASM += $(call rwildcard, $(addsuffix $(ARCH),framework/driver/), *.S)
-
-endif
-
 ##########################
-# expand all source file paths in to object files in $(BUILDDIR)
+# expand all source file paths in to object files
 #
-OBJDRIVER = $(patsubst %.c, $(BUILDDIR)/%.o, $(SRCDRIVER))
-OBJEXT = $(patsubst %.c, $(BUILDDIR)/%.o, $(SRCEXT))
-OBJASM = $(patsubst %.S, $(BUILDDIR)/%.o, $(SRCASM))
-OBJMAIN = $(patsubst %.c, $(BUILDDIR)/%.o, $(SRCMAIN))
-OBJSHARED = $(patsubst %.c, $(BUILDDIR)/%.o, $(SRCSHARED))
+OBJASM = poly1305.o
+OBJSHARED = main_shared.o
 
 ##########################
 # non-file targets
 #
 .PHONY: all
 .PHONY: default
-.PHONY: makebin
-.PHONY: exe
 .PHONY: lib
 .PHONY: shared
 
@@ -73,36 +43,30 @@ all: default
 
 default: lib
 
-makebin:
-	@mkdir -p $(BINDIR)
-
-exe: makebin $(BINDIR)/$(PROJECTNAME)$(EXE)
-	@echo built [$(BINDIR)/$(PROJECTNAME)$(EXE)]
-
 install-generic:
-	$(INSTALL) -d $(includedir)/lib$(PROJECTNAME)
+	$(INSTALL) -d $(includedir)/libpoly1305
 	$(INSTALL) -d $(libdir)
-	$(INSTALL) -m 644 $(appdir)/include/*.h $(includedir)/lib$(PROJECTNAME)
+	$(INSTALL) -m 644 src/*.h $(includedir)/libpoly1305
 
-lib: makebin $(BINDIR)/$(PROJECTNAME)$(STATICLIB)
-	@echo built [$(BINDIR)/$(PROJECTNAME)$(STATICLIB)]
+lib: poly1305$(STATICLIB)
+	@echo built [poly1305$(STATICLIB)]
 
 install-lib: lib install-generic
-	$(INSTALL) -m 644 $(BINDIR)/$(PROJECTNAME)$(STATICLIB) $(libdir)
-	$(if $(RANLIB), $(RANLIB) $(libdir)/$(PROJECTNAME)$(STATICLIB))
+	$(INSTALL) -m 644 poly1305$(STATICLIB) $(libdir)
+	$(if $(RANLIB), $(RANLIB) $(libdir)/poly1305$(STATICLIB))
 
 ifeq ($(HAVESHARED),yes)
-shared: makebin $(BINDIR)/$(SONAME)
-	@echo built [$(BINDIR)/$(SONAME)]
+shared: $(SONAME)
+	@echo built [$(SONAME)]
 
 install-shared: shared install-generic
 ifneq ($(SOIMPORT),)
 	$(INSTALL) -d $(bindir)
-	$(INSTALL) -m 755 $(BINDIR)/$(SONAME) $(bindir)
-	$(INSTALL) -m 644 $(BINDIR)/$(SOIMPORT) $(libdir)
+	$(INSTALL) -m 755 $(SONAME) $(bindir)
+	$(INSTALL) -m 644 $(SOIMPORT) $(libdir)
 else ifneq ($(SONAME),)
-	$(INSTALL) -m 755 $(BINDIR)/$(SONAME) $(libdir)
-	ln -f -s $(libdir)/$(SONAME) $(libdir)/lib$(PROJECTNAME).$(SOSUFFIX)
+	$(INSTALL) -m 755 $(SONAME) $(libdir)
+	ln -f -s $(libdir)/$(SONAME) $(libdir)/libpoly1305.$(SOSUFFIX)
 endif
 else
 shared:
@@ -113,18 +77,21 @@ install-shared:
 endif # HAVESHARED
 
 uninstall:
-	rm -rf $(includedir)/lib$(PROJECTNAME)
-	rm -f $(libdir)/$(PROJECTNAME)$(STATICLIB)
+	rm -rf $(includedir)/libpoly1305
+	rm -f $(libdir)/poly1305$(STATICLIB)
 ifneq ($(SOIMPORT),)
 	rm -f $(bindir)/$(SONAME) $(libdir)/lib$(SOIMPORT)
 else ifneq ($(SONAME),)
-	rm -f $(libdir)/$(SONAME) $(libdir)/lib$(PROJECTNAME).$(SOSUFFIX)
+	rm -f $(libdir)/$(SONAME) $(libdir)/libpoly1305.$(SOSUFFIX)
 endif
 
 clean:
-	@echo cleaning project [$(PROJECTNAME)]
-	@rm -rf $(BUILDDIR)/*
-	@rm -rf $(BINDIR)/*
+	@rm -f *.o
+	@rm -f poly1305$(STATICLIB)
+	@rm -f $(SONAME)
+	@rm -f $(SOIMPORT)
+	@rm -f *.P
+	@echo cleaning project [poly1305]
 
 distclean: clean
 	@rm asmopt.mak
@@ -135,10 +102,10 @@ distclean: clean
 #
 
 # use $(BASEOBJ) in build rules to grab the base path/name of the object file, without an extension
-BASEOBJ = $(BUILDDIR)/$*
+BASEOBJ = $*
 
 # building .S (assembler) files
-$(BUILDDIR)/%.o: %.S
+%.o: src/%.S
 	@mkdir -p $(dir $@)
 	$(AS) $(ASFLAGS) $(ASMINCLUDE) $(DEPMM) $(DEPMF) $(BASEOBJ).temp -D BUILDING_ASM -c -o $(BASEOBJ).o $<
 	@cp $(BASEOBJ).temp $(BASEOBJ).P
@@ -151,7 +118,7 @@ $(BUILDDIR)/%.o: %.S
 	@rm -f $(BASEOBJ).temp
 
 # building .c (C) files
-$(BUILDDIR)/%.o: %.c
+%.o: src/%.c
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) $(CINCLUDE) $(DEPMM) $(DEPMF) $(BASEOBJ).temp -c -o $(BASEOBJ).o $<
 	@cp $(BASEOBJ).temp $(BASEOBJ).P
@@ -168,24 +135,18 @@ $(BUILDDIR)/%.o: %.c
 # include all auto-generated dependencies
 #
 
--include $(OBJDRIVER:%.o=%.P)
--include $(OBJEXT:%.o=%.P)
 -include $(OBJASM:%.o=%.P)
--include $(OBJMAIN:%.o=%.P)
 -include $(OBJSHARED:%.o=%.P)
 
 ##########################
 # final build targets
 #
-$(BINDIR)/$(PROJECTNAME)$(EXE): $(OBJDRIVER) $(OBJEXT) $(OBJASM) $(OBJMAIN)
-	$(CC) $(CFLAGS) -o $@ $(OBJDRIVER) $(OBJEXT) $(OBJASM) $(OBJMAIN)
-
-$(BINDIR)/$(PROJECTNAME)$(STATICLIB): $(OBJDRIVER) $(OBJEXT) $(OBJASM)
-	rm -f $(PROJECTNAME)$(STATICLIB)
-	$(AR)$@ $(OBJDRIVER) $(OBJEXT) $(OBJASM)
+poly1305$(STATICLIB): $(OBJASM)
+	rm -f poly1305$(STATICLIB)
+	$(AR)$@ $(OBJASM)
 	$(if $(RANLIB), $(RANLIB) $@)
 
 ifeq ($(HAVESHARED),yes)
-$(BINDIR)/$(SONAME): $(OBJDRIVER) $(OBJEXT) $(OBJASM) $(OBJSHARED)
-	$(LD)$@ $(OBJDRIVER) $(OBJEXT) $(OBJASM) $(OBJSHARED) $(SOFLAGS) $(LDFLAGS)
+$(SONAME): $(OBJASM) $(OBJSHARED)
+	$(LD)$@ $(OBJASM) $(OBJSHARED) $(SOFLAGS) $(LDFLAGS)
 endif

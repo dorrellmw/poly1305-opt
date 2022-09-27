@@ -82,16 +82,16 @@ Hashing incrementally, i.e. with multiple calls to update the state.
 
 There are 3 reference versions, specialized for increasingly capable systems from 8 bit-ish only operations (with the world's most inefficient portable carries, you really don't want to use this unless nothing else runs) to 64 bit.
 
-* Generic 8-bit-ish: [poly1305\_ref](app/extensions/poly1305/poly1305_ref-8.inc)
-* Generic 32-bit with 64-bit compiler support: [poly1305\_ref](app/extensions/poly1305/poly1305_ref-32.inc)
-* Generic 64-bit: [poly1305\_ref](app/extensions/poly1305/poly1305_ref-64.inc)
+* Generic 8-bit-ish: [poly1305\_ref](src/poly1305_ref-8.inc)
+* Generic 32-bit with 64-bit compiler support: [poly1305\_ref](src/poly1305_ref-32.inc)
+* Generic 64-bit: [poly1305\_ref](src/poly1305_ref-64.inc)
 
 ## x86 (32 bit) ##
 
-* 386 compatible: [poly1305\_x86](app/extensions/poly1305/poly1305_x86-32.inc)
-* SSE2: [poly1305\_sse2](app/extensions/poly1305/poly1305_sse2-32.inc)
-* AVX: [poly1305\_avx](app/extensions/poly1305/poly1305_avx-32.inc)
-* AVX2: [poly1305\_avx2](app/extensions/poly1305/poly1305_avx2-32.inc)
+* 386 compatible: [poly1305\_x86](src/poly1305_x86-32.inc)
+* SSE2: [poly1305\_sse2](src/poly1305_sse2-32.inc)
+* AVX: [poly1305\_avx](src/poly1305_avx-32.inc)
+* AVX2: [poly1305\_avx2](src/poly1305_avx2-32.inc)
 
 The 386 compatible version is a modified version of djb's floating point public domain implementation.
 
@@ -99,10 +99,10 @@ SSE2, AVX, and AVX2 versions of the one-shot version `poly1305_auth` will revert
 
 ## x86-64 ##
 
-* x86-64 compatible: [poly1305\_x86](app/extensions/poly1305/poly1305_x86-64.inc)
-* SSE2: [poly1305\_sse2](app/extensions/poly1305/poly1305_sse2-64.inc)
-* AVX: [poly1305\_avx](app/extensions/poly1305/poly1305_avx-64.inc)
-* AVX2: [poly1305\_avx2](app/extensions/poly1305/poly1305_avx2-64.inc)
+* x86-64 compatible: [poly1305\_x86](src/poly1305_x86-64.inc)
+* SSE2: [poly1305\_sse2](src/poly1305_sse2-64.inc)
+* AVX: [poly1305\_avx](src/poly1305_avx-64.inc)
+* AVX2: [poly1305\_avx2](src/poly1305_avx2-64.inc)
 
 SSE2, AVX, and AVX2 versions of the one-shot version `poly1305_auth` will revert to the x86-64 compatible version if the number of bytes is below a certain threshhold.
 
@@ -110,8 +110,8 @@ The x86-64 compatible version is _only_ included for short messages. It is thoro
 
 ## ARM ##
 
-* ARMv6: [poly1305\_armv6](app/extensions/poly1305/poly1305_armv6-32.inc)
-* NEON: [poly1305\_neon](app/extensions/poly1305/poly1305_neon-32.inc)
+* ARMv6: [poly1305\_armv6](src/poly1305_armv6-32.inc)
+* NEON: [poly1305\_neon](src/poly1305_neon-32.inc)
 
 NEON versions of the one-shot version `poly1305_auth` will revert to the ARMv6 version if the number of bytes is below a certain threshhold.
 

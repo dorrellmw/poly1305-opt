@@ -629,4 +629,4 @@ popl %ebp
 ret
 FN_END poly1305_auth_x86
 
-INCLUDE_VAR_FILE "poly1305/poly1305_constants_x86.inc", poly1305_constants_x86
+INCLUDE_VAR_FILE "poly1305_constants_x86.inc", poly1305_constants_x86

@@ -17,10 +17,8 @@ Installation options:
   --includedir=DIR                    install includes in DIR [PREFIX/include]
 
 Configuration options:
-  --appdir=DIR                        read per-project files (extensions/) from DIR [app]
   --debug                             builds with no optimization and debugging symbols enbaled
   --disable-as                        do not use external assembly
-  --example                           equivalent to --appdir=app-
   --force-32bits                      (try to) build for 32bits regardless of underlying system
   --force-64bits                      (try to) build for 64bits regardless of underlying system
   --generic                           alias for --disable-as, forces a generic build
@@ -158,8 +156,8 @@ test_for_gnu_make() {
 }
 
 # options
-outputheader="framework/include/asmopt.h"
-outputheaderstub="framework/include/asmopt_internal.h"
+outputheader="src/asmopt.h"
+outputheaderstub="src/asmopt_internal.h"
 outputmake="asmopt.mak"
 outputlog="config.log"
 asmheader=".text"
@@ -169,7 +167,6 @@ bits64="no"
 strict="no"
 pic="no"
 
-appdir="app"
 prefix="/usr/local"
 exec_prefix=""
 bindir=""
@@ -180,12 +177,6 @@ includedir=""
 while [ "$1" != "" ]; do
     arg="${1#*=}"
     case $1 in
-        --appdir=* ) appdir="$arg"
-                     ;;
-
-        --example ) appdir="app-example"
-                    ;;
-
         --prefix=* ) prefix="$arg"
                      ;;
 
@@ -266,12 +257,9 @@ OFORMAT="generic"
 EXE=""
 STATICLIB=".lib"
 
-PROJECTNAME="poly1305"
-PROJECTNAMEUPPER="POLY1305"
 PROJECTVERMAJOR="1"
 
 # set things up
-mkdir -p build
 rm -f $outputmake
 > $outputlog
 
@@ -282,8 +270,8 @@ cat > $outputheaderstub << EOF
 EOF
 
 cat > $outputheader << EOF
-#ifndef ASMOPT_${PROJECTNAMEUPPER}_H
-#define ASMOPT_${PROJECTNAMEUPPER}_H
+#ifndef ASMOPT_POLY1305_H
+#define ASMOPT_POLY1305_H
 
 EOF
 
@@ -542,22 +530,22 @@ AR="$AR rc "
 
 # shared library
 if [ "$OFORMAT" = "win" ]; then
-    SONAME="lib${PROJECTNAME}.dll"
+    SONAME="libpoly1305.dll"
     SOIMPORT="${SONAME}.a"
     SOSUFFIX="dll"
     SOFLAGS="-shared -Wl,--out-implib,\$(BINDIR)/\$(SOIMPORT) -Wl,--enable-auto-image-base $SOFLAGS"
 elif [ "$OFORMAT" = "macho" ]; then
-    SONAME="lib${PROJECTNAME}.${PROJECTVERMAJOR}.dylib"
+    SONAME="libpoly1305.${PROJECTVERMAJOR}.dylib"
     SOIMPORT=""
     SOSUFFIX="dylib"
     SOFLAGS="-dynamiclib -install_name \$(libdir)/\$(SONAME) $SOFLAGS"
 elif [ `uname` = "SunOS" -a "`ld  --version  2>&1  | grep GNU`" = "" ]; then
-    SONAME="lib${PROJECTNAME}.so.${PROJECTVERMAJOR}"
+    SONAME="libpoly1305.so.${PROJECTVERMAJOR}"
     SOIMPORT=""
     SOSUFFIX="so"
     SOFLAGS="-shared -Wl,-h,\$(SONAME) $SOFLAGS"
 else
-    SONAME="lib${PROJECTNAME}.so.${PROJECTVERMAJOR}"
+    SONAME="libpoly1305.so.${PROJECTVERMAJOR}"
     SOIMPORT=""
     SOSUFFIX="so"
     SOFLAGS="-shared -Wl,-soname,\$(SONAME) $SOFLAGS"
@@ -573,10 +561,9 @@ if [ `uname` = "SunOS" ]; then
     fi
 fi
 
-CFLAGS="$CFLAGS -DBUILDING_ASMOPT_${PROJECTNAMEUPPER}"
+CFLAGS="$CFLAGS -DBUILDING_ASMOPT_POLY1305"
 
 cat > $outputmake << EOF
-PROJECTNAME=$PROJECTNAME
 CC=$CC
 CFLAGS=$CFLAGS
 AR=$AR
@@ -602,7 +589,6 @@ exec_prefix=$exec_prefix
 bindir=$bindir
 libdir=$libdir
 includedir=$includedir
-appdir=$appdir
 EOF
 
 cat >> $outputheader << EOF
@@ -627,7 +613,7 @@ DEFINE_INT128
 
 #endif /* !defined(BUILDING_ASM) */
 
-#endif /* ASMOPT_${PROJECTNAMEUPPER}_H */
+#endif /* ASMOPT_POLY1305_H */
 
 EOF
 
@@ -637,8 +623,7 @@ cat >> $outputheaderstub << EOF
 
 #define LOCAL_PREFIX3(a,b) a##_##b
 #define LOCAL_PREFIX2(a,b) LOCAL_PREFIX3(a,b)
-#define LOCAL_PREFIX(n) LOCAL_PREFIX2(PROJECT_NAME,n)
-#define PROJECT_NAME ${PROJECTNAME}
+#define LOCAL_PREFIX(n) LOCAL_PREFIX2(poly1305,n)
 
 #endif /* ASMOPT_INTERNAL_H */
 
@@ -654,5 +639,5 @@ if [ "$HAVESHARED" = "yes" ]; then
     makeshared=",shared"
 fi
 
-echo "$outputheader generated for $PROJECTNAME, run '$GNUMAKE' or '$GNUMAKE [exe${makeshared}]' now"
+echo "$outputheader generated for poly1305, run '$GNUMAKE' or '$GNUMAKE [exe${makeshared}]' now"
 
