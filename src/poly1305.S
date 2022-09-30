@@ -47,6 +47,6 @@
 #include "poly1305_armv6-32.inc"
 #endif
 
-#if (defined(CPU_32BITS) && defined(HAVE_NEON))
+#if (defined(__arm__) && defined(HAVE_NEON))
 #include "poly1305_neon-32.inc"
 #endif

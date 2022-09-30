@@ -61,7 +61,8 @@ test_for_asm_function_annotation() {
 does_c_define_exist() {
     echo "checking for $1.." >> $outputlog
     prog=$(printf "int main() {\n#if defined(%s)\nreturn 0;\n#else\n#error error\n#endif\n}" "$1")
-    printf "%s\n" "$prog" | $CC $CFLAGSTEST -o test.o - >test.log 2>&1
+    CC="${CC:-gcc}"
+    printf "%s\n" "$prog" | $CC -x c -c -o test.o - >test.log 2>&1
     res=$?
     cat test.log >> $outputlog
     return $res
@@ -82,19 +83,11 @@ outputheader="src/asmopt.h"
 outputmake="asmopt.mak"
 outputlog="config.log"
 asmheader=".text"
-bits32="no"
-bits64="no"
 
 # handle input paramters
 while [ "$1" != "" ]; do
     arg="${1#*=}"
     case $1 in
-        --force-32bits ) bits32="yes"
-                         ;;
-
-        --force-64bits ) bits64="yes"
-                         ;;
-
         * ) echo "Unknown paramaters $1, skipping.."
             ;;
     esac
@@ -109,11 +102,8 @@ if [ "$GNUMAKE" = "" ]; then
 fi
 
 # make variables
-CC="${CC:-gcc}"
 AR="${AR:-ar}"
-CFLAGS="${CFLAGS:-}"
-CFLAGSTEST="-x c -c"
-AS="$CC"
+AS="${CC:-gcc}"
 ASFLAGS=""
 ASFLAGSTEST="-x assembler -c"
 ARCH="generic"
@@ -137,14 +127,6 @@ if try_asm "xorb %al, %al"; then
     echo "#define ARCH_X86" >> $outputheader
     ARCH="x86"
 
-    # make sure the C compiler is actually speaking x86
-    if does_c_define_exist "__i386__"; then
-       OBITS="32"
-    elif does_c_define_exist "__x86_64__"; then
-       OBITS="64"
-    else
-       fatal_error "[x86] Unable to determine output bits!"
-    fi
 
     # figure out which instruction sets the assembler supports
     test_for_asm_instruction_set "vpaddq %zmm0, %zmm0, %zmm0" HAVE_AVX512
@@ -163,15 +145,14 @@ if try_asm "xorb %al, %al"; then
     test_for_asm_macro_parameter_convention "\op" "xorl" "%eax" HAVE_SLASHMACRO
     test_for_asm_macro_parameter_convention "\$0" "xorl" "%eax" HAVE_DOLLARMACRO
 
-    # outbit bits
-    if [ "$bits32" = "yes" ]; then
-      OBITS="32"
-    elif [ "$bits64" = "yes" ]; then
-      OBITS="64"
+    # make sure the C compiler is actually speaking x86
+    if does_c_define_exist "__i386__"; then
+       ASFLAGS="$ASFLAGS -m32 -c"
+    elif does_c_define_exist "__x86_64__"; then
+       ASFLAGS="$ASFLAGS -m64 -c"
+    else
+       fatal_error "[x86] Unable to determine output bits!"
     fi
-
-    CFLAGS="$CFLAGS -m$OBITS"
-    ASFLAGS="$ASFLAGS -m$OBITS -c"
 
     if test_for_asm_function_annotation ".hidden"; then
         echo "#define HAVE_AS_HIDDEN" >> $outputheader
@@ -179,25 +160,16 @@ if try_asm "xorb %al, %al"; then
         echo "#define HAVE_AS_PRIVATE_EXTERN" >> $outputheader
     fi
 
-    printf "#define CPU_%sBITS\n" "$OBITS" >> $outputheader
     foundas="yes"
 elif try_asm "and r0, r0, r0"; then
     echo "#define ARCH_ARM" >> $outputheader
     ARCH="arm"
     foundas="yes"
 
-    if does_c_define_exist "__arm__"; then
-       OBITS="32"
-    elif does_c_define_exist "__aarch64__"; then
-       OBITS="64"
-    else
-       fatal_error "[ARM] Unable to determine output bits!"
-    fi
-
     test_for_asm_macro_parameter_convention "\op" "tst" "r0" HAVE_SLASHMACRO
     test_for_asm_macro_parameter_convention "\$0" "tst" "r0" HAVE_DOLLARMACRO
 
-    if [ "$OBITS" = "32" ]; then
+    if does_c_define_exist "__arm__"; then
         asmheader=$(printf ".arch armv6\n.text")
         test_for_asm_instruction_set "uqadd8 r3,r3,r3" HAVE_ARMv6
         asmheader=$(printf ".arch armv7-a\n.text")
@@ -218,7 +190,7 @@ elif try_asm "and r0, r0, r0"; then
         test_for_asm_instruction_set "udiv r0, r1, r2" HAVE_IDIVA
         asmheader=$(printf ".arch armv7-a\n.arch_extension idiv\n.text\n.thumb\n.thumb_func")
         test_for_asm_instruction_set "udiv r0, r1, r2" HAVE_IDIVT
-    elif [ "$OBITS" = "64" ]; then
+    elif does_c_define_exist "__aarch64__"; then
         asmheader=$(printf ".arch armv8-a\n.text")
         test_for_asm_instruction_set "hlt" HAVE_ARMv8
 
@@ -238,9 +210,10 @@ elif try_asm "and r0, r0, r0"; then
         test_for_asm_instruction_set "vmull.p64	q0, d0, d0" HAVE_PMULL
         asmheader=$(printf ".arch armv8-a\n.arch_extension crc\n.text")
         test_for_asm_instruction_set "crc32b r0, r1, r2" HAVE_CRC32
+    else
+        fatal_error "[ARM] Unable to determine output bits!"
     fi
 
-    printf "#define CPU_%sBITS\n" "$OBITS" >> $outputheader
 fi
 
 if [ "$foundas" = "no" ]; then
@@ -251,7 +224,6 @@ fi
 AR="$AR rc "
 
 cat > $outputmake << EOF
-CC=$CC
 AR=$AR
 AS=$AS
 ASFLAGS=$ASFLAGS
