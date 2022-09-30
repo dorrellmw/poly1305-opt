@@ -78,14 +78,6 @@ Hashing incrementally, i.e. with multiple calls to update the state.
 
 # VERSIONS #
 
-## Reference ##
-
-There are 3 reference versions, specialized for increasingly capable systems from 8 bit-ish only operations (with the world's most inefficient portable carries, you really don't want to use this unless nothing else runs) to 64 bit.
-
-* Generic 8-bit-ish: [poly1305\_ref](src/poly1305_ref-8.inc)
-* Generic 32-bit with 64-bit compiler support: [poly1305\_ref](src/poly1305_ref-32.inc)
-* Generic 64-bit: [poly1305\_ref](src/poly1305_ref-64.inc)
-
 ## x86 (32 bit) ##
 
 * 386 compatible: [poly1305\_x86](src/poly1305_x86-32.inc)
