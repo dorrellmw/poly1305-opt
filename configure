@@ -232,12 +232,6 @@ EOF
 
 cat >> $outputheader << EOF
 
-#if !defined(BUILDING_ASM)
-
-#include <stddef.h>
-
-#endif /* !defined(BUILDING_ASM) */
-
 #endif /* ASMOPT_POLY1305_H */
 
 EOF

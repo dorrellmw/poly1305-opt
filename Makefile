@@ -53,7 +53,7 @@ BASEOBJ = $*
 # building .S (assembler) files
 %.o: src/%.S
 	@mkdir -p $(dir $@)
-	$(AS) $(ASFLAGS) $(ASMINCLUDE) -MMD -MF $(BASEOBJ).temp -D BUILDING_ASM -c -o $(BASEOBJ).o $<
+	$(AS) $(ASFLAGS) $(ASMINCLUDE) -MMD -MF $(BASEOBJ).temp -c -o $(BASEOBJ).o $<
 	@cp $(BASEOBJ).temp $(BASEOBJ).P
 	@sed \
 	-e 's/^[^:]*: *//' \
