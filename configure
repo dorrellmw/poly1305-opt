@@ -8,11 +8,8 @@ Help:
   -h, --help                          print this message
 
 Configuration options:
-  --debug                             builds with no optimization and debugging symbols enbaled
   --force-32bits                      (try to) build for 32bits regardless of underlying system
   --force-64bits                      (try to) build for 64bits regardless of underlying system
-  --pic                               pass -fPIC to the compiler, required to build shared library
-  --strict                            use strict compiler flags for C
 
 EOF
 exit 1
@@ -61,76 +58,12 @@ test_for_asm_function_annotation() {
     return $res
 }
 
-try_c() {
-    printf "%s\n" "$1" | $CC $CFLAGSTEST -o test.o - >test.log 2>&1
-    res=$?
-    cat test.log >> $outputlog
-    return $res
-}
-
-try_c_visibility() {
-    echo "checking for $1.." >> $outputlog
-    OLDFLAGS="$CFLAGSTEST"
-    CFLAGSTEST="$CFLAGSTEST -fvisibility=hidden -Werror"
-    prog=$(printf "%s int vis() { return 53; }" "$1")
-    try_c "$prog"
-    res=$?
-    return $res
-}
-
-try_c_stdint() {
-    echo "checking for $1.." >> $outputlog
-    prog=$(printf "#include <stdint.h>\nint main() { %s x = 53; return (int)x; }" "$1")
-    try_c "$prog"
-    res=$?
-    return $res
-}
-
-try_c_runnable() {
-    rm -f test
-    printf "%s\n" "$1" | $CC $CFLAGSTEST -o test.o - >test.log 2>&1
-    res=$?
-    cat test.log >> $outputlog
-    if [ "$res" != "0" ]; then
-       return $res
-    fi
-    $CC -o test test.o >test.log 2>&1
-    res=$?
-    cat test.log >> $outputlog
-    return $res
-}
-
-try_c_type() {
-    echo "checking for $1.." >> $outputlog
-    prog=$(printf "int main() {\n%s t = 0; return (int) t;\n}" "$1")
-    try_c "$prog"
-    res=$?
-    return $res
-}
-
-try_c_type_unsigned() {
-    echo "checking for $2 with $1 bits.." >> $outputlog
-    prog=$(printf "typedef %s mytype; int main(int argc,char *argv[]) {mytype x; int i; x = (mytype) atoi(argv[1]); for(i=0;i<%s;i++){if(x==0) return 100; x+=x+(mytype)atoi(argv[2]);} if(x!=0) return 100; x-=1; if(x<0) return 100; return 0;}" "$2" "$1")
-    try_c_runnable "$prog" || return $?
-    ./test 1 0
-    res=$?
-    return $res
-}
-
-define_c_type() {
-    echo "#define HAVE_$1" >> $outputheader
-    echo "#define DEFINE_$1 typedef $2; typedef $3;" >> $outputheader
-}
-
-define_c_type_undefined() {
-    echo "#define DEFINE_$1" >> $outputheader
-}
-
 does_c_define_exist() {
     echo "checking for $1.." >> $outputlog
     prog=$(printf "int main() {\n#if defined(%s)\nreturn 0;\n#else\n#error error\n#endif\n}" "$1")
-    try_c "$prog"
+    printf "%s\n" "$prog" | $CC $CFLAGSTEST -o test.o - >test.log 2>&1
     res=$?
+    cat test.log >> $outputlog
     return $res
 }
 
@@ -149,30 +82,18 @@ outputheader="src/asmopt.h"
 outputmake="asmopt.mak"
 outputlog="config.log"
 asmheader=".text"
-debug="no"
 bits32="no"
 bits64="no"
-strict="no"
-pic="no"
 
 # handle input paramters
 while [ "$1" != "" ]; do
     arg="${1#*=}"
     case $1 in
-        --debug ) debug="yes"
-                  ;;
-
         --force-32bits ) bits32="yes"
                          ;;
 
         --force-64bits ) bits64="yes"
                          ;;
-
-        --pic ) pic="yes"
-                ;;
-
-        --strict ) strict="yes"
-                   ;;
 
         * ) echo "Unknown paramaters $1, skipping.."
             ;;
@@ -196,7 +117,6 @@ AS="$CC"
 ASFLAGS=""
 ASFLAGSTEST="-x assembler -c"
 ARCH="generic"
-OFORMAT="generic"
 
 PROJECTVERMAJOR="1"
 
@@ -209,17 +129,6 @@ cat > $outputheader << EOF
 #define ASMOPT_POLY1305_H
 
 EOF
-
-# output format
-if does_c_define_exist "__MACH__"; then
-    OFORMAT="macho"
-elif does_c_define_exist "__ELF__"; then
-    OFORMAT="elf"
-elif does_c_define_exist "_WIN32" || does_c_define_exist "_WIN64" || does_c_define_exist "__CYGWIN__"; then
-    OFORMAT="win"
-else
-    OFORMAT="generic"
-fi
 
 # assembler detection
 foundas="no"
@@ -338,126 +247,11 @@ if [ "$foundas" = "no" ]; then
     fatal_error "Unable to find a working assembler/assembler dialect!"
 fi
 
-
-# stdint
-have_stdint="no"
-have_uint128="no"
-if try_c_stdint "uint8_t"; then
-    if [ "$OBITS" = "64" ]; then
-        if try_c_stdint "uint128_t"; then
-            echo "#define HAVE_INT128" >> $outputheader
-            have_uint128="yes"
-        fi
-    fi
-    if try_c_stdint "int64_t"; then
-        echo "#define HAVE_INT64" >> $outputheader
-    fi
-    echo "#define HAVE_INT32" >> $outputheader
-    echo "#define HAVE_INT16" >> $outputheader
-    echo "#define HAVE_INT8" >> $outputheader
-    echo "#define HAVE_STDINT" >> $outputheader
-    have_stdint="yes"
-fi
-
-# external uint128_t detection if stdint didn't have it
-ctype="INT128"
-if [ "$OBITS" = "64" ]; then
-    if [ "$have_uint128" = "no" ]; then
-        if try_c_type "__int128"; then
-            define_c_type "$ctype" "signed __int128 int128_t" "unsigned __int128 uint128_t"
-        elif try_c_type "__uint128_t"; then
-            define_c_type "$ctype" "__int128_t int128_t" "__uint128_t uint128_t"
-        elif try_c_type "unsigned int __attribute__ ((__mode__ (TI)))"; then
-            define_c_type "$ctype" "signed int int128_t __attribute__ ((__mode__ (TI)))" "unsigned int uint128_t __attribute__ ((__mode__ (TI)))"
-        else
-            define_c_type_undefined "$ctype"
-        fi
-    fi
-else
-    define_c_type_undefined "$ctype"
-fi
-
-if [ "$have_stdint" = "no" ]; then
-    # 64 bit int
-    ctype="INT64"
-    if try_c_type_unsigned "64" "unsigned long long"; then
-        define_c_type "$ctype" "signed long long int64_t" "unsigned long long uint64_t"
-    elif try_c_type_unsigned "64" "unsigned long"; then
-        define_c_type "$ctype" "signed long int64_t" "unsigned long uint64_t"
-    elif try_c_type_unsigned "64" "int __attribute__ ((__mode__ (DI)))"; then
-        define_c_type "$ctype" "signed int int64_t __attribute__ ((__mode__ (DI)))" "unsigned int uint64_t __attribute__ ((__mode__ (DI)))"
-    else
-        define_c_type_undefined "$ctype"
-    fi
-
-    # 32 bit int
-    ctype="INT32"
-    if try_c_type_unsigned "32" "unsigned long"; then
-        define_c_type "$ctype" "signed long int32_t" "unsigned long uint32_t"
-    elif try_c_type_unsigned "32" "unsigned int"; then
-        define_c_type "$ctype" "signed int uint32_t" "unsigned int uint32_t"
-    else
-        define_c_type_undefined "$ctype"
-    fi
-
-    # 16 bit int
-    ctype="INT16"
-    if try_c_type_unsigned "16" "unsigned int"; then
-        define_c_type "$ctype" "signed int int16_t" "unsigned int uint16_t"
-    elif try_c_type_unsigned "16" "unsigned short"; then
-        define_c_type "$ctype" "signed short int16_t" "unsigned short uint16_t"
-    else
-        define_c_type_undefined "$ctype"
-    fi
-
-    # 8bits
-    ctype="INT8"
-    if try_c_type_unsigned "8" "unsigned char"; then
-        define_c_type "$ctype" "signed char int8_t" "unsigned char uint8_t"
-    else
-        define_c_type_undefined "$ctype"
-    fi
-fi
-
-# gettimeofday
-if try_c "#include <sys/time.h> int main(void) { struct timeval t; gettimeofday(&t, NULL); return 0; }"; then
-    echo "#define HAVE_GETTIMEOFDAY" >> $outputheader
-fi
-
-# visibility
-if try_c_visibility '__attribute__ ((dllexport))'; then
-    LIB_EXPORT="__attribute__ ((dllexport))"
-    LIB_IMPORT="__attribute__ ((dllimport))"
-    CFLAGS="$CFLAGS -fvisibility=hidden -DLIB_PUBLIC=\"__attribute__ ((dllexport))\""
-elif try_c_visibility '__attribute__ ((visibility ("default")))'; then
-    CFLAGS="$CFLAGS -fvisibility=hidden -DLIB_PUBLIC=\"__attribute__ ((visibility (\\\"default\\\")))\""
-else
-    LIB_EXPORT=''
-    LIB_IMPORT=''
-    CFLAGS="$CFLAGS -DLIB_PUBLIC=\"\" "
-fi
-
-if [ "$pic" = "yes" ]; then
-    CFLAGS="$CFLAGS -fPIC"
-fi
-
-
-if [ "$debug" = "yes" ]; then
-    CFLAGS="$CFLAGS -g"
-else
-    CFLAGS="$CFLAGS -O2"
-fi
-
-if [ "$strict" = "yes" ]; then
-    CFLAGS="$CFLAGS -Wall -fno-strict-aliasing -W -Wextra -Werror -Wmissing-prototypes"
-fi
-
 # only GCC style for now
 AR="$AR rc "
 
 cat > $outputmake << EOF
 CC=$CC
-CFLAGS=$CFLAGS
 AR=$AR
 AS=$AS
 ASFLAGS=$ASFLAGS
@@ -470,20 +264,6 @@ cat >> $outputheader << EOF
 
 #include <stddef.h>
 
-/* use HAVE_INTxxx to determine if an integer with [8,16,32,64,128] bits is available */
-
-#if defined(HAVE_STDINT)
-	#include <stdint.h>
-#else
-	DEFINE_INT64
-	DEFINE_INT32
-	DEFINE_INT16
-	DEFINE_INT8
-#endif
-
-/* stdint doesn't currently detect this, but may in the future */
-DEFINE_INT128
-
 #endif /* !defined(BUILDING_ASM) */
 
 #endif /* ASMOPT_POLY1305_H */
@@ -494,5 +274,5 @@ cleanup
 
 $GNUMAKE clean
 
-echo "$outputheader generated for poly1305, run '$GNUMAKE' or '$GNUMAKE exe' now"
+echo "$outputheader generated for poly1305, run '$GNUMAKE' now"
 
