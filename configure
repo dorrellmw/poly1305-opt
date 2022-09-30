@@ -1,21 +1,5 @@
 #!/bin/sh
 
-if test x"$1" = x"-h" -o x"$1" = x"--help" ; then
-cat << EOF
-Usage: ./configure [options]
-
-Help:
-  -h, --help                          print this message
-
-Configuration options:
-  --force-32bits                      (try to) build for 32bits regardless of underlying system
-  --force-64bits                      (try to) build for 64bits regardless of underlying system
-
-EOF
-exit 1
-fi
-
-
 cleanup() {
     rm -f test.o
     rm -f test
@@ -68,16 +52,6 @@ does_c_define_exist() {
     return $res
 }
 
-test_for_gnu_make() {
-    if [ "$GNUMAKE" = "" ]; then
-        echo "checking for gnu make as '$1'" >> $outputlog
-        res=`$1 -v 2>$outputlog | grep GNU`
-        if [ "$res" != "" ]; then
-            GNUMAKE="$1"
-        fi
-    fi
-}
-
 # options
 outputheader="src/asmopt.h"
 outputmake="asmopt.mak"
@@ -94,21 +68,10 @@ while [ "$1" != "" ]; do
     shift
 done
 
-GNUMAKE=""
-test_for_gnu_make "make"
-test_for_gnu_make "gmake"
-if [ "$GNUMAKE" = "" ]; then
-    fatal_error "Unable to find gnu make! (tried make, gmake)"
-fi
-
 # make variables
-AR="${AR:-ar}"
 AS="${CC:-gcc}"
 ASFLAGS=""
 ASFLAGSTEST="-x assembler -c"
-ARCH="generic"
-
-PROJECTVERMAJOR="1"
 
 # set things up
 rm -f $outputmake
@@ -124,9 +87,6 @@ EOF
 foundas="no"
 if try_asm "xorb %al, %al"; then
     ASFLAGSTEST="$ASFLAGSTEST -m32"
-    echo "#define ARCH_X86" >> $outputheader
-    ARCH="x86"
-
 
     # figure out which instruction sets the assembler supports
     test_for_asm_instruction_set "vpaddq %zmm0, %zmm0, %zmm0" HAVE_AVX512
@@ -162,8 +122,6 @@ if try_asm "xorb %al, %al"; then
 
     foundas="yes"
 elif try_asm "and r0, r0, r0"; then
-    echo "#define ARCH_ARM" >> $outputheader
-    ARCH="arm"
     foundas="yes"
 
     test_for_asm_macro_parameter_convention "\op" "tst" "r0" HAVE_SLASHMACRO
@@ -220,14 +178,9 @@ if [ "$foundas" = "no" ]; then
     fatal_error "Unable to find a working assembler/assembler dialect!"
 fi
 
-# only GCC style for now
-AR="$AR rc "
-
 cat > $outputmake << EOF
-AR=$AR
 AS=$AS
 ASFLAGS=$ASFLAGS
-ARCH=$ARCH
 EOF
 
 cat >> $outputheader << EOF
@@ -238,7 +191,7 @@ EOF
 
 cleanup
 
-$GNUMAKE clean
+make clean
 
-echo "$outputheader generated for poly1305, run '$GNUMAKE' now"
+echo "$outputheader generated for poly1305, run make now"
 
