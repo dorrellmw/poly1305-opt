@@ -3,4 +3,3 @@ config.log
 src/asmopt.h
 poly1305.P
 poly1305.o
-poly1305.lib

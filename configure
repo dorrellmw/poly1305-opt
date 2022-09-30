@@ -7,15 +7,6 @@ Usage: ./configure [options]
 Help:
   -h, --help                          print this message
 
-Installation options:
-  --prefix=PREFIX                     install architecture-independent files in PREFIX
-                                      [/usr/local]
-  --exec-prefix=EPREFIX               install architecture-dependent files in EPREFIX
-                                      [PREFIX]
-  --bindir=DIR                        install binaries in DIR [EPREFIX/bin]
-  --libdir=DIR                        install libs in DIR [EPREFIX/lib]
-  --includedir=DIR                    install includes in DIR [PREFIX/include]
-
 Configuration options:
   --debug                             builds with no optimization and debugging symbols enbaled
   --force-32bits                      (try to) build for 32bits regardless of underlying system
@@ -164,31 +155,10 @@ bits64="no"
 strict="no"
 pic="no"
 
-prefix="/usr/local"
-exec_prefix=""
-bindir=""
-libdir=""
-includedir=""
-
 # handle input paramters
 while [ "$1" != "" ]; do
     arg="${1#*=}"
     case $1 in
-        --prefix=* ) prefix="$arg"
-                     ;;
-
-        --exec-prefix=* ) exec_prefix="$arg"
-                          ;;
-
-        --bindir=* ) bindir="$arg"
-                     ;;
-
-        --libdir=* ) libdir="$arg"
-                     ;;
-
-        --includedir=* ) includedir="$arg"
-                         ;;
-
         --debug ) debug="yes"
                   ;;
 
@@ -210,11 +180,6 @@ while [ "$1" != "" ]; do
     shift
 done
 
-exec_prefix="${exec_prefix:-$prefix}"
-bindir="${bindir:-${exec_prefix}/bin}"
-libdir="${libdir:-${exec_prefix}/lib}"
-includedir="${includedir:-${prefix}/include}"
-
 GNUMAKE=""
 test_for_gnu_make "make"
 test_for_gnu_make "gmake"
@@ -225,24 +190,13 @@ fi
 # make variables
 CC="${CC:-gcc}"
 AR="${AR:-ar}"
-LD="${CC} -o "
-RANLIB="${RANLIB:-ranlib}"
-STRIP="${STRIP:-strip}"
-INSTALL="${INSTALL:-install}"
 CFLAGS="${CFLAGS:-}"
 CFLAGSTEST="-x c -c"
-SOFLAGS="${SOFLAGS:-}"
-SONAME=""
-SOSUFFIX=""
-SOIMPORT=""
-LDFLAGS="${LDFLAGS:-}"
 AS="$CC"
 ASFLAGS=""
 ASFLAGSTEST="-x assembler -c"
-HAVESHARED="no"
 ARCH="generic"
 OFORMAT="generic"
-STATICLIB=".lib"
 
 PROJECTVERMAJOR="1"
 
@@ -308,7 +262,6 @@ if try_asm "xorb %al, %al"; then
     fi
 
     CFLAGS="$CFLAGS -m$OBITS"
-    LDFLAGS="$LDFLAGS -m$OBITS"
     ASFLAGS="$ASFLAGS -m$OBITS -c"
 
     if test_for_asm_function_annotation ".hidden"; then
@@ -486,9 +439,6 @@ fi
 
 if [ "$pic" = "yes" ]; then
     CFLAGS="$CFLAGS -fPIC"
-    HAVESHARED="yes"
-elif [ "$OFORMAT" = "win" ]; then
-    HAVESHARED="yes"
 fi
 
 
@@ -505,61 +455,13 @@ fi
 # only GCC style for now
 AR="$AR rc "
 
-# shared library
-if [ "$OFORMAT" = "win" ]; then
-    SONAME="libpoly1305.dll"
-    SOIMPORT="${SONAME}.a"
-    SOSUFFIX="dll"
-    SOFLAGS="-shared -Wl,--out-implib,\$(BINDIR)/\$(SOIMPORT) -Wl,--enable-auto-image-base $SOFLAGS"
-elif [ "$OFORMAT" = "macho" ]; then
-    SONAME="libpoly1305.${PROJECTVERMAJOR}.dylib"
-    SOIMPORT=""
-    SOSUFFIX="dylib"
-    SOFLAGS="-dynamiclib -install_name \$(libdir)/\$(SONAME) $SOFLAGS"
-elif [ `uname` = "SunOS" -a "`ld  --version  2>&1  | grep GNU`" = "" ]; then
-    SONAME="libpoly1305.so.${PROJECTVERMAJOR}"
-    SOIMPORT=""
-    SOSUFFIX="so"
-    SOFLAGS="-shared -Wl,-h,\$(SONAME) $SOFLAGS"
-else
-    SONAME="libpoly1305.so.${PROJECTVERMAJOR}"
-    SOIMPORT=""
-    SOSUFFIX="so"
-    SOFLAGS="-shared -Wl,-soname,\$(SONAME) $SOFLAGS"
-fi
-
-if [ `uname` = "SunOS" ]; then
-    if test -x /usr/ucb/install; then
-        INSTALL=/usr/ucb/install
-    elif test -x /usr/bin/ginstall; then
-        INSTALL=/usr/bin/ginstall
-    elif test -x /usr/gnu/bin/install ; then
-        INSTALL=/usr/gnu/bin/install
-    fi
-fi
-
 cat > $outputmake << EOF
 CC=$CC
 CFLAGS=$CFLAGS
 AR=$AR
-LD=$LD
-RANLIB=$RANLIB
-STRIP=$STRIP
-INSTALL=$INSTALL
-HAVESHARED=$HAVESHARED
 AS=$AS
 ASFLAGS=$ASFLAGS
 ARCH=$ARCH
-STATICLIB=$STATICLIB
-SONAME=$SONAME
-SOIMPORT=$SOIMPORT
-SOSUFFIX=$SOSUFFIX
-SOFLAGS=$SOFLAGS
-LDFLAGS=$LDFLAGS
-exec_prefix=$exec_prefix
-bindir=$bindir
-libdir=$libdir
-includedir=$includedir
 EOF
 
 cat >> $outputheader << EOF
@@ -592,10 +494,5 @@ cleanup
 
 $GNUMAKE clean
 
-makeshared=""
-if [ "$HAVESHARED" = "yes" ]; then
-    makeshared=",shared"
-fi
-
-echo "$outputheader generated for poly1305, run '$GNUMAKE' or '$GNUMAKE [exe${makeshared}]' now"
+echo "$outputheader generated for poly1305, run '$GNUMAKE' or '$GNUMAKE exe' now"
 
