@@ -19,13 +19,6 @@ try_asm() {
     return $res
 }
 
-test_for_asm_instruction_set() {
-    echo "checking for $2.." >>$outputlog
-    if try_asm "$1"; then
-        echo "#define $2" >> $outputheader
-    fi
-}
-
 test_for_asm_function_annotation() {
     echo "checking for $1.." >>$outputlog
     prog=$(printf ".globl %s\n%s %s\n%s\n" "myfn" "$1" "myfn" "myfn:")
@@ -112,7 +105,6 @@ EOF
 cat >> $outputheader << EOF
 
 #endif /* ASMOPT_POLY1305_H */
-
 EOF
 
 cleanup
