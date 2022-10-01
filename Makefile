@@ -8,11 +8,7 @@ include asmopt.mak
 # set up variables
 #
 
-INCLUDE = $(addprefix -I./,src)
-ASMINCLUDE = $(INCLUDE)
-
-COMMA := ,
-ASMINCLUDE += $(addprefix -Wa$(COMMA),$(INCLUDE))
+ASMINCLUDE = -I./src
 
 ##########################
 # expand all source file paths in to object files
